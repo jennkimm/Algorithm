@@ -11,7 +11,6 @@ vector<int> solution(int brown, int yellow) {
 		for (int x = y; x < (brown - 2); x++) { // 가로
 			int _brown = (2 * x) + (2 * (y - 2));
 			int _yellow = (x * y) - _brown;
-			//cout << _brown << ", " << _yellow << endl;
 
 			if (_brown == brown && _yellow == yellow) {
 					answer.push_back(x);
