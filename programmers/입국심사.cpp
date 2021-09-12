@@ -21,8 +21,13 @@ long long solution(int n, vector<int> times) {
 		}
 		if (max_people < n) {
 			left = mid + 1;
-		} else {
-			answer = answer > mid ? mid : answer; // mid 가 answer 보다 작으면 mid 를 대입.
+		} else if (max_people > n) {
+			right = mid - 1;
+		}
+		else {
+			// max_people == n
+			answer = mid;
+			//answer = answer > mid ? mid : answer; // mid 가 answer 보다 작으면 mid 를 대입.
 			right = mid - 1;
 		}
 		// max_people == n 이라도 바로 break; 시키면 안된다. -> 더 작을 경우도 있을 수 있음. right 와 left 가
@@ -33,7 +38,7 @@ long long solution(int n, vector<int> times) {
 
 int main() {
 	int n = 6;
-	vector<int> times = {7, 10};
+	vector<int> times = {2, 5, 6, 10}; // mid == 9 , mid == 8
 
 	cout << solution(n, times) << endl;
 }

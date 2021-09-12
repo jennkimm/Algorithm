@@ -35,5 +35,6 @@
 *.dSYM
 *.out
 .vscode
+kakao
 
 .DS_Store
