@@ -102,7 +102,6 @@ int main() {
     for (int i = 0; i < n; ++i) {
         scanf("%s", map[i]);
     }
-	printf("\n");
 
 	for (int y = 0; y < n; ++y) {
         for (int x = 0; x < m; ++x) {
