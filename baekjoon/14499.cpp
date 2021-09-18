@@ -6,7 +6,6 @@ using namespace std;
 int n, m, x, y, k;
 vector<int> orders;
 vector<vector<int>> map;
-int dice[6] = {0, 0, 0, 0, 0, 0};
 int a[4] = {0,0,0,0};
 int b[4] = {0,0,0,0};
 
@@ -26,15 +25,6 @@ int main() {
 	// 1 = 오 2 = 왼 3 = 위 4 = 아래
 	// 항상 a[1]이 바닥, a[3]이 위.
 	for(int i = 0; i < k; ++i) {
-		// for(int i = 0; i < 4; ++i) {
-		// 	printf("%d ", a[i]);
-		// }
-		// printf("\n");
-		// for(int i = 0; i < 4; ++i) {
-		// 	printf("%d ", b[i]);
-		// }
-		// printf("\n");
-		// printf("------\n");
 		if (orders[i] == 1 && y + 1 >= m) {
 			continue;
 		} else if (orders[i] == 1) {
