@@ -36,13 +36,11 @@ int main() {
 	}
 
 	for(int i = 0; i < p; ++i) {
-
 		// 파이어볼 이동
 		for(int j = 1; j <= n; ++j) {
 			for(int k = 1; k <= n; ++k) {
 				if (!map[j][k].empty()) {
 					int size = map[j][k].size();
-
 					for(int v = 0; v < size; ++v) {
 						int x = map[j][k].front().r;
 						int y = map[j][k].front().c;
@@ -128,7 +126,7 @@ int main() {
 			if (map[i][j].size() > 0) {
 				while(!map[i][j].empty()) {
 					ans += map[i][j].front().m;
-					printf("%d %d, m = %d, s = %d, d = %d\n", map[i][j].front().r, map[i][j].front().c, map[i][j].front().m, map[i][j].front().s, map[i][j].front().d);
+					//printf("%d %d, m = %d, s = %d, d = %d\n", map[i][j].front().r, map[i][j].front().c, map[i][j].front().m, map[i][j].front().s, map[i][j].front().d);
 					map[i][j].pop();
 				}
 			}
