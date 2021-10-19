@@ -72,7 +72,7 @@ int main() {
 								if (nx < 1 || nx > n || ny < 1 || ny > n)
 									continue;
 								else {
-									trees[nx][ny].push_front(1);
+									trees[nx][ny].push_front(1); // 새로 추가되는 나무를 앞쪽에 넣으면 정렬할 필요 X
 								}
 							}
 						}
