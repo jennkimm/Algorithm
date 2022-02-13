@@ -10,7 +10,7 @@ using namespace std;
 int visited[51][51];
 int dy[] = {-1, 1, 0, 0};
 int dx[] = {0, 0, -1, 1};
-const int dir[4][2] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+
 vector<vector<pair<int,int>>> allPairs;
 
 void dfs(int y, int x, int n, vector<pair<int,int>> &block, vector<vector<int>> &table) {
@@ -101,14 +101,14 @@ int solution(vector<vector<int>> game_board, vector<vector<int>> table) {
         // rotate
         for(int r = 0; r < n; r++) {
             for(int c = 0; c < n; c++) {
-                rotateBoard[r][c] = game_board[c][n-r-1];
+                rotateBoard[r][c] = game_board[c][n-r-1]; // 90도 회전
             }
         }
 
         for(int i = 0; i < allPairs.size(); i++) {
             if(pairsVis[i] == 0 && solve(rotateBoard, allPairs[i])) {
                 answer += allPairs[i].size();
-                pairsVis[i] = 1;
+                pairsVis[i] = 1;2
             }
         }
 
