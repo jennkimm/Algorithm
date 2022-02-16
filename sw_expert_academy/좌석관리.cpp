@@ -11,6 +11,12 @@ using namespace std;
 int dx[] = {1, -1, 0, 0};
 int dy[] = {0, 0, 1, -1};
 
+/**
+ * 수식 계산 정수형인지 실수형인지 꼭 고려하기
+ * 특히, pow, sqrt 등 계산 할 시애!!!
+ * 해당 문제도 안전거리 계산 시 int -> double 로 변경 후 맞음
+**/
+
 int main(int argc, char** argv)
 {
 	int n, m, q;
@@ -70,7 +76,7 @@ int main(int argc, char** argv)
 					eating.insert(id);
 					printf("%d gets the seat (1, 1).\n", id); // (1, 1)에 배치
 				} else {
-					int max_dist = 0; // 안전거리들 중 최대
+					double max_dist = 0; // 안전거리들 중 최대
 					int px, py; // 앉을 자리 좌표
 					for(int x = 0; x < n; ++x) {
 						for(int y = 0; y < m; ++y) {
@@ -91,12 +97,12 @@ int main(int argc, char** argv)
 								if (!isYes)
 									continue;
 								// 안전 거리 계산
-								int min_dist = 100001; // 최소 거리 계산
+								double min_dist = 100001; // 최소 거리 계산
 								for(int a = 0; a < n; ++a) {
 									for(int b = 0; b < m; ++b) {
 										// (a, b)의 상하좌우를 검사
 										if (v[a][b] != 0) {  // (a, b)에 사람이 앉아있으면
-											int dist = sqrt(pow(y - b, 2) + pow(x - a, 2)); // 앉아 있는 사람들 간 거리 계산
+											double dist = sqrt(pow(y - b, 2) + pow(x - a, 2)); // 앉아 있는 사람들 간 거리 계산
 											if (dist < min_dist) { // 최소 거리 갱신
 												min_dist = dist;
 											}
