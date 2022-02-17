@@ -6,6 +6,13 @@
 
 using namespace std;
 
+/**
+ * 시간제한 2초
+ * 메모이제이션 활용하여 구현해야 함
+ * 미리 최대매출로 목표잡아서 한번 쫙 사이즈당 매출 계산해놓고
+ * 각 목표매출 별 사이즈 출력
+**/
+
 bool cmp(pair<int, int> &a, pair<int, int> &b) {
 	return a.second < b.second;
 }
@@ -39,8 +46,6 @@ int main(int argc, char** argv)
 		maxvalue += maxcost;
 	}
 
-	// 매출에 따라 신차 크기를 최소 얼마로 설정해야 하는지 구하자.
-	// 신차 크기 - 매출 -> map 으로 저장
 	int q;
 	scanf("%d", &q);
 	vector<pair<int, int>> gc;
@@ -54,66 +59,42 @@ int main(int argc, char** argv)
 
 	vector<int> answer(gc.size());
 
-	// 이전까지 검사한 size 와 매출 저장
-	auto jj = m.begin();
-	int sofarcost = 0;
-	for(int i = 0; i < gc.size(); ++i) {
-		map<int, pair<int, int>> hubo; // key - 소비자, value - {사이즈, 가격}
-		int cur_cost = sofarcost;
-		bool flag = false;
+	map<int, pair<int, int>> hubo; // key - 소비자, value - {사이즈, 가격}
+	int cur_cost = 0;
 
-		if (maxvalue < gc[i].second) {
-			answer[gc[i].first] = -1;
-			continue;
-		}
-
-		// 이전꺼랑 목표 매출이 같다면
-		if (i >= 1 && gc[i].second == gc[i-1].second){
-			answer[gc[i].first] = answer[gc[i-1].first];
-			continue;
-		}
-
-		for(auto j = m.begin(); j != m.end(); ++j) { // 사이즈가 작은 순서대로 돌면서
-			int p;
-			printf("%d 사이즈부터 검사시작, ", j->first);
-			for(p = 0; p < j->second.size(); ++p) {
-				// j->first 사이즈
-				// j->second[p]->first 가격
-				// j->second[p]->second 소비자
-				if (hubo.find(j->second[p].second) == hubo.end()) {
-					hubo.insert({j->second[p].second, {j->first, j->second[p].first}});
-					cur_cost += j->second[p].first;
-				} else if (hubo.find(j->second[p].second)->second.second < j->second[p].first) {
-					// 갱신
-					cur_cost -= hubo.find(j->second[p].second)->second.second;
-					cur_cost += j->second[p].first;
-					hubo.find(j->second[p].second)->second.first = j->first;
-					hubo.find(j->second[p].second)->second.second = j->second[p].first;
-				}
-
-				if (cur_cost >= gc[i].second) {
-					//printf("%d %d %d\n", cur_cost, gc[i].second, gc[i].first);
-					// 성공
-					// 처음 성공?
-					// 신차 사이즈 최소 찾기
-					int max_size = 0;
-					for(auto k = hubo.begin(); k != hubo.end(); ++k) {
-						if(max_size < k->second.first) {
-							max_size = k->second.first;
-						}
-					}
-					answer[gc[i].first] = max_size;
-					flag = true;
-					break;
-				}
+	for(auto j = m.begin(); j != m.end(); ++j) { // 사이즈가 작은 순서대로 돌면서
+		int p;
+		for(p = 0; p < j->second.size(); ++p) {
+			// j->first 사이즈
+			// j->second[p]->first 가격
+			// j->second[p]->second 소비자
+			if (hubo.find(j->second[p].second) == hubo.end()) {
+				hubo.insert({j->second[p].second, {j->first, j->second[p].first}});
+				cur_cost += j->second[p].first;
+			} else if (hubo.find(j->second[p].second)->second.second < j->second[p].first) {
+				// 갱신
+				cur_cost -= hubo.find(j->second[p].second)->second.second;
+				cur_cost += j->second[p].first;
+				hubo.find(j->second[p].second)->second.first = j->first;
+				hubo.find(j->second[p].second)->second.second = j->second[p].first;
 			}
-			//printf("p = %d, j->second.size() = %lu\n", p, j->second.size());
-			if (flag)
-				break;
 		}
+		memo[j->first] = cur_cost;
+	}
 
-		if (cur_cost < gc[i].second) {
-			// 실패
+	auto base = memo.begin();
+	for(int i = 0; i < gc.size(); ++i) {
+		bool flag = false;
+		for(auto j = base; j != memo.end(); ++j) {
+			// 목표 매출이 mm->second 보다 작으면
+			if (gc[i].second <= j->second) {
+				answer[gc[i].first] = j->first;
+				flag = true;
+				base = j; // 베이스 업데이트해서 효율적으로
+				break;
+			}
+		}
+		if (!flag) {
 			answer[gc[i].first] = -1;
 		}
 	}
@@ -122,7 +103,6 @@ int main(int argc, char** argv)
 	for(i = 0; i < answer.size() - 1; ++i) {
 		printf("%d ", answer[i]);
 	}
-
 	printf("%d\n", answer[i]);
 
 	return 0;
