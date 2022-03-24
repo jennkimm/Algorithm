@@ -1,141 +1,169 @@
 #include <stdio.h>
 #include <vector>
-#include <queue>
+#include <algorithm>
 
 using namespace std;
 
-int dx[] = { 0, 0, -1, -1, -1, 0, 1, 1, 1 };
-int dy[] = { 0, -1, -1, 0, 1, 1, 1, 0, -1 };
-int tx[] = { 0, -1, 0, 1, 0 };
-int ty[] = { 0, 0, -1, 0, 1 };
+int dr[] = { 0, 1, 1, 1, 0, -1, -1, -1 }; // 물고기 이동방향
+int dc[] = { -1, -1, 0, 1, 1, 1, 0, -1 };
+int tr[] = { -1, 0, 1, 0 }; // 상어 이동방향 - 상좌하우
+int tc[] = { 0, -1, 0, 1 };
 
-int m, s;
-vector<vector<deque<int>>> v;
-vector<vector<int>> smell;
-int shark_x, shark_y;
+typedef struct {
+	int r;
+	int c;
+	int dir;
+} fish;
 
-struct fish {
-	int x, y, dir;
-};
-struct vd{
-	int a, b, c; // 방향
-	int cnt; // 물고기 갯수
-}
+vector<fish> board[5][5]; // 격자
+vector<vector<int>> fish_smell; // 물고기 냄새
+vector<fish> fishes; // 물고기
+int sr, sc; // 상어 위치
 
-deque<fish> fishs;
-
-int max_fish = 0;
-vector<vd> vvd;
-
-void dfs(int cnt, int x, int y, vector<int> vdir) {
-	if(vdir.size() == 3) {
-		vd temp;
-		temp.a = vdir[0];
-		temp.b = vdir[1];
-		temp.c = vdir[2];
-		temp.cnt = cnt;
-		if (cnt > max_fish)
-			max_fish = cnt;
-		vvd.push_back(temp);
-	} else {
-		for(int i = 1; i <= 4; ++i) {
-			int nx = x + tx[i];
-			int ny = y + ty[i];
-
-			if (nx < 1 || nx > 4 || ny < 1 || ny > 4) {
-				continue;
-			} else {
-				vdir.push_back(i);
-				dfs(cnt + v[nx][ny].size(), nx, ny, vdir);
-				vdir.pop_back();
-			}
-		}
-	}
+bool cmp(fish &a, fish &b) {
+	if (a.r != b.r)
+		return a.r < b.r;
+	if (a.c != b.c)
+		return a.c < b.c;
+	return a.dir < b.dir;
 }
 
 int main() {
+	int m, s;
 	scanf("%d %d", &m, &s);
 
-	v.assign(5, vector<deque<int>>(5));
-	smell.assign(5, vector<int>(5, 0));
-
 	for(int i = 0; i < m; ++i) {
-		fish tmp;
-		scanf("%d %d %d", &tmp.x, &tmp.y, &tmp.dir);
-		fishs.push_back(tmp);
+		int r, c, dir;
+		scanf("%d %d %d", &r, &c, &dir);
+		fish f;
+		f.r = r;
+		f.c = c;
+		// 방향은 변환이 필요 (받는건 시계방향, 옮겨야하는건 반시계방향 -> 반시계로 통일)
+		dir--; // 0 ~ 7 로 조정
+		if (dir == 0)
+			f.dir = 0;
+		else
+			f.dir = 8 - dir;
+		fishes.push_back(f);
 	}
 
-	scanf("%d %d", &shark_x, &shark_y);
+	scanf("%d %d", &sr, &sc);
+	fish_smell.assign(5, vector<int>(5, 0));
 
-	for(int t = 0; t < s; ++t) {
-		// 알을 낳는다.
+	while(s--) {
+		sort(fishes.begin(), fishes.end(), cmp);
 
 		// 물고기 이동
-		for(int i = 0; i < fishs.size(); ++i) {
-			// 방향에 맞게 이동
-			int dir = fishs[i].dir;
-			int nx = fishs[i].x + dx[dir];
-			int ny = fishs[i].y + dy[dir];
-			if (nx < 1 || nx > 4 || ny < 1 || ny > 4 || (shark_x == nx && shark_y == ny) || smell[nx][ny] != 0) {
-				// 반시계방향 45도 회전
-				dir--;
-				if (dir == 0)
-					dir = 8;
-				continue;
-			} else {
-				// 물고기 이동시키기
-				v[nx][ny].push_back(dir);
+		for(int i = 0; i < fishes.size(); ++i) {
+			bool flag = false;
+			for(int q = 0; q < 8; ++q) {
+				int nr = fishes[i].r + dr[(fishes[i].dir + q) % 8];
+				int nc = fishes[i].c + dc[(fishes[i].dir + q) % 8];
+
+				if (nr < 1 || nr > 4 || nc < 1 || nc > 4) {
+					continue;
+				} else if (fish_smell[nr][nc] > 0 || ((nr == sr) && (nc == sc))) {
+					continue;
+				} else {
+					fish nf;
+					nf.r = nr;
+					nf.c = nc;
+					nf.dir = (fishes[i].dir + q) % 8;
+					// 물고기 이동
+					board[nr][nc].push_back(nf);
+					flag = true;
+					break;
+				}
+			}
+			// 물고기 이동 가능한 곳 없으면 원래 좌표 그대로 격자에
+			if (!flag) {
+				board[fishes[i].r][fishes[i].c].push_back(fishes[i]);
 			}
 		}
 
 		// 상어 이동
-		vector<int> vtemp;
-		dfs(0, shark_x, shark_y, vtemp);
-		for(int i = 0; i < vvd.size(); ++i) {
-			if (vvd[i].cnt == max_fish) {
-				// 이렇게움직일거다
-				int nx1, ny1, nx2, ny2, nx3, ny3;
-				nx1 = shark_x + tx[vvd[i].a];
-				ny1 = shark_y + ty[vvd[i].a];
-				nx2 = nx1 + tx[vvd[i].b];
-				ny2 = ny1 + ty[vvd[i].b];
-				nx3 = nx2 + tx[vvd[i].c];
-				ny3 = ny2 + ty[vvd[i].c];
-				for(int k = fishs.size() - 1; k >= 0; --k) {
-					if (nx1 == fishs[k].x && ny1 == fishs[k].y) {
-						fishs.erase(fishs.begin() + k);
-						smell[nx1][ny1] = 2;
+		int max_fish = -1;
+		vector<vector<bool>> visited;
+		int x1, y1, x2, y2, x3, y3;
+		for(int i = 0; i < 4; ++i) {
+			for(int j = 0; j < 4; ++j) {
+				for(int k = 0; k < 4; ++k) {
+					visited.assign(5, vector<bool>(5, false));
+					int fish_cnt = 0;
+					int nsr1 = sr + tr[i];
+					int nsc1 = sc + tc[i];
+					if (nsr1 < 1|| nsr1 > 4 || nsc1 < 1 || nsc1 > 4)
+						continue;
+					else if (!visited[nsr1][nsc1]) {
+						fish_cnt += board[nsr1][nsc1].size();
+						visited[nsr1][nsc1] = true;
 					}
-					if (nx2 == fishs[k].x && ny2 == fishs[k].y) {
-						fishs.erase(fishs.begin() + k);
-						smell[nx2][ny2] = 2;
+					int nsr2 = nsr1 + tr[j];
+					int nsc2 = nsc1 + tc[j];
+					if (nsr2 < 1|| nsr2 > 4 || nsc2 < 1 || nsc2 > 4)
+						continue;
+					else if (!visited[nsr2][nsc2]) {
+						fish_cnt += board[nsr2][nsc2].size();
+						visited[nsr2][nsc2] = true;
 					}
-					if (nx3 == fishs[k].x && ny3 == fishs[k].y) {
-						fishs.erase(fishs.begin() + k);
-						smell[nx2][ny2] = 2;
+					int nsr3 = nsr2 + tr[k];
+					int nsc3 = nsc2 + tc[k];
+					if (nsr3 < 1|| nsr3 > 4 || nsc3 < 1 || nsc3 > 4)
+						continue;
+					else if (!visited[nsr3][nsc3]) {
+						fish_cnt += board[nsr3][nsc3].size();
+						visited[nsr3][nsc3] = true;
+					}
+					if (max_fish < fish_cnt) {
+						max_fish = fish_cnt;
+						x1 = nsr1;
+						y1 = nsc1;
+						x2 = nsr2;
+						y2 = nsc2;
+						x3 = nsr3;
+						y3 = nsc3;
 					}
 				}
-				v[nx1][ny1].clear();
-				v[nx2][ny2].clear();
-				v[nx3][ny3].clear();
-				shark_x = nx3;
-				shark_y = ny3;
-				break;
 			}
 		}
+		if (board[x1][y1].size() > 0)
+			fish_smell[x1][y1] = 3;
+		board[x1][y1].clear();
+		if (board[x2][y2].size() > 0)
+			fish_smell[x2][y2] = 3;
+		board[x2][y2].clear();
+		if (board[x3][y3].size() > 0)
+			fish_smell[x3][y3] = 3;
+		board[x3][y3].clear();
+		printf("상어 이동 %d %d -> %d %d -> %d %d\n", x1, y1, x2, y2, x3, y3);
+		sr = x3;
+		sc = y3;
 
+		printf("상어 위치 %d %d\n", sr, sc);
+
+		// 물고기 냄새 조정
 		for(int i = 1; i <= 4; ++i) {
 			for(int j = 1; j <= 4; ++j) {
-				if (smell[i][j] > 0) {
-					smell[i][j]--;
+				if (fish_smell[i][j] > 0) {
+					fish_smell[i][j]--;
 				}
 			}
 		}
 
 		// 물고기 복제
-		
-
-
-		max_fish = 0;
+		// fishes 에 현재 board 에 있는 물고기 옮기기
+		for(int i = 1; i <= 4; ++i) {
+			for(int j = 1; j <= 4; ++j) {
+				if (board[i][j].size() > 0) {
+					for(int k = 0; k < board[i][j].size(); k++) {
+						fishes.push_back(board[i][j][k]);
+					}
+					board[i][j].clear();
+				}
+			}
+		}
 	}
+
+	printf("%lu\n", fishes.size());
+	return 0;
 }
