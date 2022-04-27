@@ -1,235 +1,201 @@
 #include <stdio.h>
 #include <vector>
+#include <algorithm>
 #include <queue>
+#include <stack>
 
 using namespace std;
 
-int n, m;
-int dx[] = {-1, 1, 0, 0};
-int dy[] = {0, 0, 1, -1};
-struct block_info {
-	int bs;
-	int r;
-	int c;
-	int rainbow_cnt;
-	vector<pair<int, int>> qq;
+int dx[] = {0, 0, 1, -1};
+int dy[] = {1, -1, 0, 0};
+
+struct block {
+    int size; // 블록 사이즈
+    int rainbow_cnt; // 무지개블록 갯수
+    int r; // 기준 블록 행
+    int c; // 기준 블록 열
+    vector<vector<int>> blck;
 };
-int score= 0;
+vector<block> bgroup;
+vector<vector<int>> board;
+int n, m;
 
-vector<vector<int>> mm;
-
-bool cmp(block_info &b1, block_info &b2) {
-	if (b1.bs == b2.bs) {
-		if (b1.rainbow_cnt == b2.rainbow_cnt) {
-			if (b1.r == b2.r) {
-				return b1.c > b2.c;
-			} else {
-				return b1.r > b2.r;
-			}
-		} else {
-			return b1.rainbow_cnt > b2.rainbow_cnt;
-		}
-	} else {
-		return b1.bs > b2.bs;
-	}
+bool cmp(block &a, block &b) {
+    if (a.size == b.size) {
+        if (a.rainbow_cnt == b.rainbow_cnt) {
+            if (a.r == b.r) {
+                return a.c > b.c;
+            } else
+                return a.r > b.r;
+        } else
+            return a.rainbow_cnt > b.rainbow_cnt;
+    } else
+        return a.size > b.size;
 }
 
-void bfs(int x, int y, int color, vector<block_info> &bi, vector<vector<int>> &visited) {
-	queue<pair<int, pair<int, int>>> q;
-	q.push({1, {x, y}});
-	visited[x][y] = 1;
-	int block_size = 1;
-	while(!q.empty()) {
-		int cur_size = q.front().first;
-		int cx = q.front().second.first;
-		int cy = q.front().second.second;
-		q.pop();
-		int nx, ny;
-		for(int i = 0; i < 4; ++i) {
-			nx = cx + dx[i];
-			ny = cy + dy[i];
-			if (nx < 0 || nx >= n || ny < 0 || ny >= n || visited[nx][ny] != -1 || mm[nx][ny] == -1 || mm[nx][ny] == -2)
-				continue;
-			else if (mm[nx][ny] == 0 || mm[nx][ny] == color){
-				printf("%d %d방문\n", nx, ny);
-				visited[nx][ny] = 1;
-				q.push({cur_size + 1, {nx, ny}});
-				block_size++;
-			}
-		}
-	}
-
-	if (block_size == 1) {
-		visited[x][y] = -2;
-	} else {
-		block_info tmp;
-		tmp.r = x;
-		tmp.c = y;
-		tmp.rainbow_cnt = 0;
-		tmp.bs = block_size;
-		for(int i = 0; i < n; ++i) {
-			for(int j = 0; j < n; ++j) {
-				if (visited[i][j] == 1) {
-					visited[i][j] = block_size;
-					tmp.qq.push_back({i, j});
-					if (mm[i][j] == 0)
-						tmp.rainbow_cnt++;
-				}
-			}
-		}
-		bi.push_back(tmp);
-	}
+void searchBlockGroup(int x, int y, int color, vector<vector<bool>> &visited) {
+    queue<pair<int, int>> q;
+    q.push({x, y});
+    visited[x][y] = true;
+    block b;
+    b.size = 1;
+    b.rainbow_cnt = 0;
+    b.r = x;
+    b.c = y;
+    b.blck.assign(n+1, vector<int>(n+1, 0));
+    b.blck[x][y] = 1;
+    printf("visit %d %d\n", x, y);
+    while(!q.empty()) {
+        int cx = q.front().first;
+        int cy = q.front().second;
+        q.pop();
+        for(int i = 0; i < 4; ++i) {
+            int nx = cx + dx[i];
+            int ny = cy + dy[i];
+            if (nx < 1 || nx > n || ny < 1 || ny > n) {
+                continue;
+            } else if (!visited[nx][ny] && (board[nx][ny] == 0 || board[nx][ny] == color)) {
+                printf("[visit %d %d]\n", nx, ny);
+                q.push({nx, ny});
+                visited[nx][ny] = true;
+                b.blck[nx][ny] = 1;
+                b.size++;
+                if (board[nx][ny] == 0)
+                    b.rainbow_cnt++;
+            }
+        }
+    }
+    printf("--\n");
+    if (b.size > 1) {
+        printf("%d %d 추가\n", b.r, b.c);
+        for(int i = 1; i <= n; ++i) {
+            for(int j = 1; j <= n; ++j) {
+                if (b.blck[i][j] == 1 && board[i][j] == 0)
+                    visited[i][j] = false;
+            }
+        }
+        bgroup.push_back(b);
+    }
+    return;
 }
 
 int main() {
+    // 비어있는 곳 -2
+    // 검은색 블록 -1
+    // 무지개 블록 0
+    // 일반 블록 1 ~ M
+    int score = 0;
+    scanf("%d %d", &n, &m);
+    board.assign(n+1, vector<int>(n+1, 0));
+    for(int i = 1; i <= n; ++i) {
+        for(int j = 1; j <= n; ++j) {
+            scanf("%d", &board[i][j]);
+        }
+    }
 
-	scanf("%d %d", &n, &m);
-	mm.assign(n + 1, vector<int>(n + 1, 0));
+    // 블록 그룹 - 서로 인접한 무지개 블록 && 색깔이 같은 일반 블록 
+    // 기준 블록 - 무지개 블록 아닌 것 중 행 번호 가장 작은거 (같으면 열 번호 가장 작은거)
 
-	for(int i = 0; i < n; ++i) {
-		for(int j = 0; j < n; ++j) {
-			scanf("%d", &mm[i][j]);
-		}
-	}
+    //블록그룹 있는 동안 오토 플레이 반복
+    int cnt = 0;
+    do {
+        cnt++;
+        bgroup.clear();
+        // 블록 그룹 찾기
+        vector<vector<bool>> visited;
+        visited.assign(n+1, vector<bool>(n+1, false));
+        for(int i = 1; i <= n; ++i) {
+            for(int j = 1; j <= n; ++j) {
+                if (board[i][j] > 0 && board[i][j] <= m && !visited[i][j]) {
+                    searchBlockGroup(i, j, board[i][j], visited);
+                }
+            }
+        }
+        if (bgroup.size() == 0)
+            break;
+        // 크기가 가장 큰 블록 그룹을 찾는다. 그러한 블록 그룹이 여러 개라면 포함된 무지개 블록의 수가 가장 많은 블록 그룹, 그러한 블록도 여러개라면 기준 블록의 행이 가장 큰 것을, 그 것도 여러개이면 열이 가장 큰 것을 찾는다.
+        sort(bgroup.begin(), bgroup.end(), cmp);
+        // 1에서 찾은 블록 그룹의 모든 블록을 제거한다. 블록 그룹에 포함된 블록의 수를 B라고 했을 때, B^2점을 획득한다.
 
-	while(true) {
-		vector<vector<int>> visited;
-		vector<block_info> bi;
-		visited.assign(n + 1, vector<int>(n + 1, -1)); // 블록 사이즈를 넣을꺼야~
+        for(int i = 1; i <= n; ++i) {
+            for(int j = 1; j <= n; ++j) {
+                if (bgroup[0].blck[i][j] == 1)
+                    board[i][j] = -2;
+            }
+        }
 
-		// 블록 구하기
-		// -1 : 방문 아직 안한 것.
-		// -2 : 방문은 했으나 블록이 되지 못하는 한칸짜리.
-		// 2 ~ : 방문 했고, 블록 사이즈.
-		for(int i = 0; i < n; ++i) {
-			for(int j = 0; j < n; ++j) {
-				if (mm[i][j] > 0 && mm[i][j] <= m && visited[i][j] == -1) {
-					printf("%d %d bfs, color = %d\n", i, j, mm[i][j]);
-					bfs(i, j, mm[i][j], bi, visited);
-				}
-			}
-		}
+        score += bgroup[0].size * bgroup[0].size;
 
-		if (bi.size() == 0)
-			break;
+        // 격자에 중력이 작용한다. -> 검은 블록 제외하고 아래로 이동
+        vector<vector<int>> nboard;
+        nboard.assign(n+1, vector<int>(n+1, -2));
+        for(int i = 1; i <= n; ++i) { // 열
+            stack<int> s;
+            for(int j = 1; j <= n; ++j) { // 행
+                if (board[j][i] == -1) {
+                    nboard[j][i] = -1;
+                    int base = j - 1;
+                    while(!s.empty()) {
+                        nboard[base][i] = s.top();
+                        s.pop();
+                        base--;
+                    }
+                } else if (board[j][i] != -2) {
+                    s.push(board[j][i]);
+                }
+            }
+            if (!s.empty()) {
+                int base = n;
+                while(!s.empty()) {
+                    nboard[base][i] = s.top();
+                    s.pop();
+                    base--;
+                }
+            }
+        }
 
-		// 1 블록의 크기가 큰 것
-		// 2 무지개 블록 많이 포함한 그룹
-		// 3 기준 블록 행 큰거
-		// 4 기준 블록 열 큰거
-		sort(bi.begin(), bi.end(), cmp);
+        copy(nboard.begin(), nboard.end(), board.begin());
 
-		// 블록 제거
-		// 제거된 블록은 -2
-		for(int i = 0; i < bi[0].qq.size(); ++i) {
-			mm[bi[0].qq[i].first][bi[0].qq[i].second] = -2;
-		}
+        // 격자가 90도 반시계 방향으로 회전한다.
+        nboard.assign(n+1, vector<int>(n+1, 0));
+        for(int i = 1; i <= n; ++i){
+            for(int j = 1; j <= n; ++j) {
+                nboard[i][j] = board[j][n-i+1];
+            }
+        }
+        
+        copy(nboard.begin(), nboard.end(), board.begin());
 
-		for(int i = 0; i < n; ++i) {
-			for(int j = 0; j < n; ++j) {
-				printf("%d ", mm[i][j]);
-			}
-			printf("\n");
-		}
+        // 다시 격자에 중력이 작용한다.
+        nboard.assign(n+1, vector<int>(n+1, -2));
+        for(int i = 1; i <= n; ++i) { // 열
+            stack<int> s;
+            for(int j = 1; j <= n; ++j) { // 행
+                if (board[j][i] == -1) {
+                    nboard[j][i] = -1;
+                    int base = j - 1;
+                    while(!s.empty()) {
+                        nboard[base][i] = s.top();
+                        s.pop();
+                        base--;
+                    }
+                } else if (board[j][i] != -2) {
+                    s.push(board[j][i]);
+                }
+            }
+            if (!s.empty()) {
+                int base = n;
+                while(!s.empty()) {
+                    nboard[base][i] = s.top();
+                    s.pop();
+                    base--;
+                }
+            }
+        }
 
-		score += bi[0].bs * bi[0].bs;
+        copy(nboard.begin(), nboard.end(), board.begin());
+    } while(!bgroup.empty());
 
-		// 중력 작용
-		// -1과 -1 사이에 있는 것들 내려야함
-		for(int i = 0; i < n; ++i) {
-			int loc = n;
-			for(int j = 0; j < n; ++j) {
-				if (mm[j][i] == -1) {
-					loc = j;
-				}
-			}
-			// loc 행 전까지 위에 있는 것들 내리기
-			int p = loc - 1;
-			for(int j = loc - 1; j >= 0; j--) {
-				if (mm[j][i] >= 0) {
-					mm[p][i] = mm[j][i];
-					p--;
-				}
-			}
-
-			for(int j = p; j >= 0; j--) {
-				mm[j][i] = -2;
-			}
-
-			// loc 행 아래에 있는 것들도 내리기
-			p = loc;
-			printf("p = %d\n", p);
-			for(int j = loc + 1; j < n; ++j) {
-				if (mm[j][i] >= 0) {
-					mm[p][i] = mm[j][i];
-					p++;
-				}
-			}
-
-			for(int j = loc; j < loc; j++) {
-				mm[j][i] = -2;
-			}
-		}
-
-		printf("\n");
-		for(int i = 0; i < n; ++i) {
-			for(int j = 0; j < n; ++j) {
-				printf("%d ", mm[i][j]);
-			}
-			printf("\n");
-		}
-
-		// 반시계방향으로 90도 회전
-		vector<vector<int>> new_m;
-		new_m.assign(n + 1, vector<int>(n + 1, 0));
-
-		int idx = 0;
-		for(int i = n - 1; i >= 0; --i) {
-			for(int j = 0; j < n; ++j) {
-				mm[j][n - 1 - idx] = new_m[idx][j];
-			}
-			idx++;
-		}
-
-		copy(new_m.begin(), new_m.end(), mm.begin());
-
-		// 중력 작용
-		for(int i = 0; i < n; ++i) {
-			int loc = n;
-			for(int j = 0; j < n; ++j) {
-				if (mm[j][i] == -1) {
-					loc = j;
-				}
-			}
-			// loc 행 전까지 위에 있는 것들 내리기
-			int p = loc - 1;
-			for(int j = loc - 1; j >= 0; j--) {
-				if (mm[j][i] >= 0) {
-					mm[p][i] = mm[j][i];
-					p--;
-				}
-			}
-
-			for(int j = p; j >= 0; j--) {
-				mm[j][i] = -2;
-			}
-
-			// loc 행 아래에 있는 것들도 내리기
-			p = loc + 1;
-			for(int j = loc + 1; j < n; ++j) {
-				if (mm[j][i] >= 0) {
-					mm[p][i] = mm[j][i];
-					p++;
-				}
-			}
-
-			for(int j = p; j <= loc + 1; j++) {
-				mm[j][i] = -2;
-			}
-		}
-
-		// 블록이 존재할때가지 반복한다.
-	}
-	printf("%d\n", score);
-	return 0;
+    printf("%d\n", score);
+    return 0;
 }
